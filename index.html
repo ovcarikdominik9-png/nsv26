@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ffb7d5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Náš svet">
+<title>Náš svet</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<header id="hud">
+  <button id="back" class="pill" hidden>← Mapa</button>
+  <div id="brand" class="pill brand">Náš svet <span>💗</span></div>
+  <div class="right">
+    <button id="hearts" class="pill" aria-label="Nájdené srdiečka">💗 0/18</button>
+    <button id="sound" class="pill round" aria-label="Zvuk">🔊</button>
+    <button id="menu" class="pill round" aria-label="Zoznam spomienok">☰</button>
+  </div>
+</header>
+
+<div id="hint" class="gone">Posúvaj mapu prstom, dvoma prstami približuj a otáčaj.<br>Ťukni na srdiečko a otvor spomienku.</div>
+
+<section id="panel" hidden>
+  <button id="p-toggle" aria-label="Zbaliť alebo rozbaliť kartičku"><span></span></button>
+  <div class="p-head"><span id="p-emoji"></span><div><h2 id="p-title"></h2><div id="p-meta"></div></div></div>
+  <div class="p-body">
+    <p id="p-text"></p>
+    <div id="p-photos" hidden></div>
+    <div id="p-hint"></div>
+  </div>
+</section>
+
+<div id="bubble" hidden></div>
+<div id="toast" hidden></div>
+
+<div id="sheet" hidden>
+  <div class="sheet-card">
+    <div class="sheet-head"><h3>Naše spomienky</h3><button id="sheet-close" class="pill round" aria-label="Zavrieť">✕</button></div>
+    <div id="sheet-list"></div>
+  </div>
+</div>
+
+<div id="letter" hidden>
+  <div class="letter-card">
+    <div class="l-heart">💌</div>
+    <h2 id="l-title"></h2>
+    <div id="l-body"></div>
+    <div id="l-sign"></div>
+    <button id="l-close" class="btn">Zavrieť 💗</button>
+  </div>
+</div>
+
+<div id="lightbox" hidden><img id="lightbox-img" alt=""></div>
+<div id="fade"><span>💗</span></div>
+
+<div id="gate">
+  <div class="gate-card" id="gate-lock" hidden>
+    <div class="g-heart">💗</div>
+    <h1>Náš svet</h1>
+    <p>Tento svet je iba pre jedného človeka.<br>Ako ťa volám?</p>
+    <form id="gate-form" autocomplete="off">
+      <input id="gate-input" type="text" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="napíš prezývku" aria-label="Prezývka">
+      <button class="btn" type="submit">Otvoriť</button>
+    </form>
+    <div id="gate-msg"></div>
+  </div>
+  <div class="gate-card" id="gate-intro" hidden>
+    <div class="g-heart">💗</div>
+    <h1>Ahoj, <span id="intro-nick"></span></h1>
+    <p>Postavil som ti svet z našich spomienok.<br>Na každom ostrove nejaká čaká. Pozri si ich v akom poradí chceš a v každej skús nájsť jedno schované srdiečko.</p>
+    <button id="start" class="btn">Vstúpiť</button>
+    <div class="small">Zapni si zvuk 🔊</div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
