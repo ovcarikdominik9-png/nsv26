@@ -165,7 +165,7 @@ function collect(id, hg) {
   refreshHud();
   const n = state.hearts.length;
   toast(n === total ? 'Máš všetky srdiečka! 💗' : `Našla si srdiečko! 💗 ${n}/${total}`);
-  if (n === total) setTimeout(startFinale, 2200);
+  if (n === total) setTimeout(startFinale, 1100);
   if (current === id) $('p-hint').textContent = 'Srdiečko z tejto spomienky už máš 💗';
 }
 
@@ -422,44 +422,67 @@ let finale = null;
 const FINALE_ENV = { sky: ['#191343', '#d9588f'], fog: ['#4a2f6e', 120, 320], sun: ['#ffd0e0', 1.5, [30, 50, 20]], hemi: ['#c9b8ff', '#ff9cc4', 1.7], shadows: false, stars: true, fx: 'hearts' };
 function startFinale() {
   if (finale) return;
-  if (mode === 'scene') { if (tween) return setTimeout(startFinale, 600); exitScene(); return setTimeout(startFinale, 1500); }
-  if (tween) return setTimeout(startFinale, 600);
+  if (tween) return setTimeout(startFinale, 300);
   const F = map.finale, T = F.target;
   hideBubble(); hideHint(); closeSheet(); $('letter').hidden = true;
-  map.setComplete(false);
-  finale = { t0: clock.elapsedTime + 0.5, fw: 0, letter: false };
-  fireworks.visible = true;
+  finale = { t0: 1e9, fw: 0, letter: false, arrived: 0 };
   music.play('finale');
-  // noc, aby ohňostroj vynikol
-  through(() => { applyEnv(FINALE_ENV); controls.maxPolarAngle = 1.55; });
-  const far = innerWidth < innerHeight ? 1.55 : 1;
-  flyTo([T[0] + 2, 10.5, T[2] + 30 * far], [T[0], 10, T[2]], 3.4);
+  // jeden plynulý prechod: zo scény (alebo z dennej mapy) rovno do nočnej mapy
+  through(() => {
+    if (mode === 'scene') {
+      if (current && built[current]) scene.remove(built[current].g);
+      current = null; mode = 'map'; map.group.visible = true;
+      $('panel').hidden = true; $('back').hidden = true; $('brand').hidden = false; refreshHud();
+    }
+    map.setComplete(false);
+    applyEnv(FINALE_ENV); setControls(false); controls.maxPolarAngle = 1.55;
+    fireworks.visible = true;
+    const far = innerWidth < innerHeight ? 1.55 : 1;
+    camera.position.set(T[0] + 10, 30, T[2] + 52 * far); controls.target.set(T[0] + 4, 4, T[2]);
+    finale.t0 = clock.elapsedTime + 0.25;
+    flyTo([T[0] + 2, 10.5, T[2] + 30 * far], [T[0], 10, T[2]], 5.2);
+  });
 }
 const easeOut = (k) => 1 - Math.pow(1 - k, 3);
 function updateFinale(t) {
   if (!finale) return;
   const F = map.finale, T = F.target, tt = t - finale.t0, n = F.flyers.length;
-  // srdiečka letia zo všetkých spomienok k obláčiku
+  if (tt < 0) return;
+  const GAP = 0.12, FLY = 1.5, tBig = 0.3 + n * GAP + FLY;
+  // srdiečka letia zo všetkých spomienok k obláčiku, jedno za druhým bez prestávky
+  let arrived = 0;
   F.flyers.forEach((f, i) => {
-    const k = (tt - 1.6 - i * 0.16) / 1.7;
+    const k = (tt - 0.3 - i * GAP) / FLY;
+    if (k >= 1) arrived++;
     f.mesh.visible = k > 0 && k < 1;
     if (!f.mesh.visible) return;
     const e = k * k * (3 - 2 * k);
     f.mesh.position.set(f.from[0] + (T[0] - f.from[0]) * e, f.from[1] + (T[1] - f.from[1]) * e + Math.sin(k * Math.PI) * 9, f.from[2] + (T[2] - f.from[2]) * e);
     f.mesh.rotation.y = tt * 5 + i; f.mesh.scale.setScalar(0.9 * (1 - e * 0.5));
   });
-  const tBig = 1.6 + n * 0.16 + 1.2;
-  if (tt > tBig) {
-    const k = Math.min(1, (tt - tBig) / 1.3), el = 1 + Math.pow(2, -9 * k) * Math.sin((k * 9 - 0.75) * 2.094) * (k < 1 ? 1 : 0);
-    F.big.visible = F.halo.visible = true; F.big.scale.setScalar(3.4 * Math.max(0.01, k < 1 ? el * easeOut(k) + (1 - easeOut(k)) * 0.01 : 1 + Math.sin(t * 2.4) * 0.06));
+  // každé srdiečko, ktoré doletí, zaiskrí a veľké srdce z nich postupne rastie
+  if (arrived > finale.arrived) { finale.arrived = arrived; burst(T[0], T[1], T[2], 26); }
+  if (arrived > 0) {
+    F.big.visible = F.halo.visible = true;
+    const grow = 0.62 * arrived / n;
+    const k = Math.min(1, Math.max(0, (tt - tBig) / 1.1));
+    const pop = k <= 0 ? 0 : 1 - Math.pow(2, -8 * k) * Math.cos(k * 9);
+    const sc = k >= 1 ? 1 + Math.sin(t * 2.4) * 0.06 : grow + (1 - grow) * pop;
+    F.big.scale.setScalar(3.4 * Math.max(0.02, sc)); F.halo.scale.setScalar(Math.max(0.05, sc));
     F.big.rotation.y = Math.sin(t * 0.7) * 0.5;
-    if (tt > finale.fw) { finale.fw = tt + 0.28 + Math.random() * 0.3; const a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 13; burst(T[0] + Math.cos(a) * r, 8 + Math.random() * 11, T[2] + Math.sin(a) * r * 0.6 - 3); }
   }
-  if (tt > tBig + 1.6) { const k = Math.min(1, (tt - tBig - 1.6) / 0.9); F.words.visible = true; F.words.scale.set(11 * easeOut(k), 2.2 * easeOut(k), 1); }
-  if (tt > tBig + 7.5 && !finale.letter) { finale.letter = true; onLetter(); }
-  if (tt > tBig + 20 && $('letter').hidden) { finale = null; map.setComplete(true); state.finaleSeen = true; save(); through(() => { applyEnv(MAP_ENV); setControls(false); fwLife.fill(0); fwPos.fill(9999); fwGeo.attributes.position.needsUpdate = true; fireworks.visible = false; const h = mapHome(); camera.position.set(...h.pos); controls.target.set(...h.target); }); }
+  // ohňostroj: najprv riedko, po spojení srdca naplno
+  if (tt > 0.8 && tt > finale.fw) {
+    const full = tt > tBig;
+    finale.fw = tt + (full ? 0.22 + Math.random() * 0.25 : 0.7 + Math.random() * 0.5);
+    const a = Math.random() * Math.PI * 2, r = 7 + Math.random() * 13;
+    burst(T[0] + Math.cos(a) * r, 8 + Math.random() * 11, T[2] + Math.sin(a) * r * 0.6 - 3, full ? 90 : 55);
+  }
+  if (tt > tBig + 0.5) { const k = Math.min(1, (tt - tBig - 0.5) / 0.9); F.words.visible = true; F.words.scale.set(11 * easeOut(k), 2.2 * easeOut(k), 1); }
+  if (tt > tBig + 1.2 && !finale.rot && !tween) { finale.rot = true; controls.autoRotate = true; controls.autoRotateSpeed = 0.35; }
+  if (tt > tBig + 4.2 && !finale.letter) { finale.letter = true; onLetter(); }
+  if (tt > tBig + 16 && $('letter').hidden) { finale = null; map.setComplete(true); state.finaleSeen = true; save(); through(() => { applyEnv(MAP_ENV); setControls(false); fwLife.fill(0); fwPos.fill(9999); fwGeo.attributes.position.needsUpdate = true; fireworks.visible = false; const h = mapHome(); camera.position.set(...h.pos); controls.target.set(...h.target); }); }
 }
-
 
 // ---------- zámok a úvod ----------
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');

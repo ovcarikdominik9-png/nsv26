@@ -1,5 +1,5 @@
 // Offline režim: najprv sieť, pri výpadku uložená kópia. Pri každom nasadení zvýš VERSION.
-const VERSION = 'nas-svet-8';
+const VERSION = 'nas-svet-9';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(
   caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())
