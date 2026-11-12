@@ -164,7 +164,8 @@ function collect(id, hg) {
   map.mark(id, true, true);
   refreshHud();
   const n = state.hearts.length;
-  toast(n === total ? 'Máš všetky srdiečka! 💗 Na mape ťa čaká list…' : `Našla si srdiečko! 💗 ${n}/${total}`);
+  toast(n === total ? 'Máš všetky srdiečka! 💗' : `Našla si srdiečko! 💗 ${n}/${total}`);
+  if (n === total) setTimeout(startFinale, 2200);
   if (current === id) $('p-hint').textContent = 'Srdiečko z tejto spomienky už máš 💗';
 }
 
@@ -380,12 +381,99 @@ function onLetter() {
   state.letterSeen = true; save();
 }
 $('l-close').onclick = () => { $('letter').hidden = true; };
+$('l-again').onclick = () => { $('letter').hidden = true; startFinale(); };
+// srdiečka plávajúce za listom
+(() => { const box = $('l-float'), e = ['💗', '💕', '💖', '🩷', '🤍'];
+  for (let i = 0; i < 26; i++) { const s = document.createElement('span'); s.textContent = e[i % e.length]; s.style.left = (i * 37 % 100) + '%'; s.style.fontSize = (16 + (i * 7 % 22)) + 'px'; s.style.animationDuration = (7 + (i * 13 % 8)) + 's'; s.style.animationDelay = (-(i * 1.7 % 12)) + 's'; box.appendChild(s); } })();
+
+// ---------- finále po poslednom srdiečku ----------
+const FW = 1100, fwPos = new Float32Array(FW * 3).fill(9999), fwVel = new Float32Array(FW * 3), fwLife = new Float32Array(FW), fwCol = new Float32Array(FW * 3);
+const fwGeo = new THREE.BufferGeometry(); fwGeo.setAttribute('position', new THREE.BufferAttribute(fwPos, 3)); fwGeo.setAttribute('color', new THREE.BufferAttribute(fwCol, 3));
+const fireworks = new THREE.Points(fwGeo, new THREE.PointsMaterial({ map: dot, size: 1.15, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+fireworks.frustumCulled = false; fireworks.visible = false; scene.add(fireworks);
+let fwNext = 0;
+const FWC = ['#ff5d96', '#ffd24a', '#ffffff', '#ff9cc4', '#ffb020', '#c9a0ff'];
+function burst(x, y, z, n = 90) {
+  const c = new THREE.Color(FWC[Math.floor(Math.random() * FWC.length)]), sp = 5 + Math.random() * 4;
+  for (let k = 0; k < n; k++) {
+    const i = fwNext; fwNext = (fwNext + 1) % FW;
+    const a = Math.random() * Math.PI * 2, e = Math.acos(Math.random() * 2 - 1), v = sp * (0.6 + Math.random() * 0.4);
+    fwPos[i * 3] = x; fwPos[i * 3 + 1] = y; fwPos[i * 3 + 2] = z;
+    fwVel[i * 3] = Math.sin(e) * Math.cos(a) * v; fwVel[i * 3 + 1] = Math.cos(e) * v; fwVel[i * 3 + 2] = Math.sin(e) * Math.sin(a) * v;
+    fwLife[i] = 1.4 + Math.random() * 0.9; fwCol[i * 3] = c.r; fwCol[i * 3 + 1] = c.g; fwCol[i * 3 + 2] = c.b;
+  }
+  fwGeo.attributes.color.needsUpdate = true;
+}
+function updateFireworks(dt) {
+  if (!fireworks.visible) return;
+  let alive = false;
+  for (let i = 0; i < FW; i++) {
+    if (fwLife[i] <= 0) continue;
+    fwLife[i] -= dt; alive = true;
+    if (fwLife[i] <= 0) { fwPos[i * 3 + 1] = 9999; continue; }
+    fwVel[i * 3 + 1] -= 4.5 * dt; const d = 1 - 1.2 * dt;
+    for (let k = 0; k < 3; k++) { fwVel[i * 3 + k] *= d; fwPos[i * 3 + k] += fwVel[i * 3 + k] * dt; }
+    if (fwLife[i] < 0.5) { fwCol[i * 3] *= 0.94; fwCol[i * 3 + 1] *= 0.94; fwCol[i * 3 + 2] *= 0.94; }
+  }
+  fwGeo.attributes.position.needsUpdate = true; fwGeo.attributes.color.needsUpdate = true;
+  if (!alive && !finale) fireworks.visible = false;
+}
+let finale = null;
+const FINALE_ENV = { sky: ['#191343', '#d9588f'], fog: ['#4a2f6e', 120, 320], sun: ['#ffd0e0', 1.5, [30, 50, 20]], hemi: ['#c9b8ff', '#ff9cc4', 1.7], shadows: false, stars: true, fx: 'hearts' };
+function startFinale() {
+  if (finale) return;
+  if (mode === 'scene') { if (tween) return setTimeout(startFinale, 600); exitScene(); return setTimeout(startFinale, 1500); }
+  if (tween) return setTimeout(startFinale, 600);
+  const F = map.finale, T = F.target;
+  hideBubble(); hideHint(); closeSheet(); $('letter').hidden = true;
+  map.setComplete(false);
+  finale = { t0: clock.elapsedTime + 0.5, fw: 0, letter: false };
+  fireworks.visible = true;
+  music.play('finale');
+  // noc, aby ohňostroj vynikol
+  through(() => { applyEnv(FINALE_ENV); controls.maxPolarAngle = 1.55; });
+  const far = innerWidth < innerHeight ? 1.55 : 1;
+  flyTo([T[0] + 2, 10.5, T[2] + 30 * far], [T[0], 10, T[2]], 3.4);
+}
+const easeOut = (k) => 1 - Math.pow(1 - k, 3);
+function updateFinale(t) {
+  if (!finale) return;
+  const F = map.finale, T = F.target, tt = t - finale.t0, n = F.flyers.length;
+  // srdiečka letia zo všetkých spomienok k obláčiku
+  F.flyers.forEach((f, i) => {
+    const k = (tt - 1.6 - i * 0.16) / 1.7;
+    f.mesh.visible = k > 0 && k < 1;
+    if (!f.mesh.visible) return;
+    const e = k * k * (3 - 2 * k);
+    f.mesh.position.set(f.from[0] + (T[0] - f.from[0]) * e, f.from[1] + (T[1] - f.from[1]) * e + Math.sin(k * Math.PI) * 9, f.from[2] + (T[2] - f.from[2]) * e);
+    f.mesh.rotation.y = tt * 5 + i; f.mesh.scale.setScalar(0.9 * (1 - e * 0.5));
+  });
+  const tBig = 1.6 + n * 0.16 + 1.2;
+  if (tt > tBig) {
+    const k = Math.min(1, (tt - tBig) / 1.3), el = 1 + Math.pow(2, -9 * k) * Math.sin((k * 9 - 0.75) * 2.094) * (k < 1 ? 1 : 0);
+    F.big.visible = F.halo.visible = true; F.big.scale.setScalar(3.4 * Math.max(0.01, k < 1 ? el * easeOut(k) + (1 - easeOut(k)) * 0.01 : 1 + Math.sin(t * 2.4) * 0.06));
+    F.big.rotation.y = Math.sin(t * 0.7) * 0.5;
+    if (tt > finale.fw) { finale.fw = tt + 0.28 + Math.random() * 0.3; const a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 13; burst(T[0] + Math.cos(a) * r, 8 + Math.random() * 11, T[2] + Math.sin(a) * r * 0.6 - 3); }
+  }
+  if (tt > tBig + 1.6) { const k = Math.min(1, (tt - tBig - 1.6) / 0.9); F.words.visible = true; F.words.scale.set(11 * easeOut(k), 2.2 * easeOut(k), 1); }
+  if (tt > tBig + 7.5 && !finale.letter) { finale.letter = true; onLetter(); }
+  if (tt > tBig + 20 && $('letter').hidden) { finale = null; map.setComplete(true); state.finaleSeen = true; save(); through(() => { applyEnv(MAP_ENV); setControls(false); fwLife.fill(0); fwPos.fill(9999); fwGeo.attributes.position.needsUpdate = true; fireworks.visible = false; const h = mapHome(); camera.position.set(...h.pos); controls.target.set(...h.target); }); }
+}
+
 
 // ---------- zámok a úvod ----------
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');
+// Vianoce: pri úplne prvom otvorení a potom každý rok od 20. decembra do 6. januára
+const now = new Date(), xmasTime = (now.getMonth() === 11 && now.getDate() >= 20) || (now.getMonth() === 0 && now.getDate() <= 6);
 function showIntro() {
   $('gate-lock').hidden = true; $('gate-intro').hidden = false;
-  $('intro-nick').textContent = 'cukrík';
+  if (!(xmasTime || !state.introSeen)) return;
+  $('gate').classList.add('xmas');
+  $('intro-e').textContent = '🎄';
+  $('intro-h').textContent = 'Šťastné a veselé Vianoce, cukrík';
+  $('intro-p').innerHTML = 'Tento rok som ti chcel dať niečo, čo sa nedá kúpiť.<br>Postavil som ti svet z našich spomienok. Na každom ostrove nejaká čaká. Pozri si ich v akom poradí chceš a v každej skús nájsť jedno schované srdiečko.';
+  const box = $('snow');
+  if (!box.childElementCount) for (let i = 0; i < 40; i++) { const s = document.createElement('span'); s.textContent = i % 3 ? '❄' : '•'; s.style.left = (i * 53 % 100) + '%'; s.style.fontSize = (10 + (i * 7 % 16)) + 'px'; s.style.animationDuration = (6 + (i * 11 % 9)) + 's'; s.style.animationDelay = (-(i * 1.3 % 12)) + 's'; s.style.opacity = 0.5 + (i % 5) * 0.1; box.appendChild(s); }
 }
 $('gate-form').onsubmit = (e) => {
   e.preventDefault();
@@ -397,6 +485,7 @@ $('gate-form').onsubmit = (e) => {
   $('gate-msg').textContent = ugly ? 'Takto by som ťa nikdy nenazval 🙈' : 'To nie je ono 🙂 Ako ťa volám najradšej?';
 };
 $('start').onclick = () => {
+  state.introSeen = true; save();
   music.unlock(); music.setMuted(state.muted); music.play('mapa');
   $('gate').classList.add('gone'); setTimeout(() => { $('gate').hidden = true; }, 700);
   flyTo(mapHome().pos, MAP_CAM.target, 2.6);
@@ -421,17 +510,20 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   if (tween) tween();
   // kamera nesmie ujsť príliš ďaleko
-  if (mode === 'map') { controls.target.x = THREE.MathUtils.clamp(controls.target.x, -48, 46); controls.target.z = THREE.MathUtils.clamp(controls.target.z, -34, 44); controls.target.y = 0; }
+  if (mode === 'map') { controls.target.x = THREE.MathUtils.clamp(controls.target.x, -48, 46); controls.target.z = THREE.MathUtils.clamp(controls.target.z, -34, 44); if (!finale) controls.target.y = 0; }
   else { lim.copy(controls.target); lim.y = 0; if (lim.length() > 7) { lim.setLength(7); controls.target.x = lim.x; controls.target.z = lim.z; } controls.target.y = THREE.MathUtils.clamp(controls.target.y, -1.5, 6); }
   controls.update();
   if (mode === 'map') map.update(t);
   else if (built[current]) for (const f of built[current].updates) f(t, dt);
   updateFx(t, dt);
+  updateFinale(t); updateFireworks(dt);
   waterNormal.offset.set(t * 0.012, t * 0.008);
   placeBubble();
   renderer.render(scene, camera);
 });
 
 // ladenie: ?scene=tatry otvorí rovno scénu
-window.__world = { enterScene, exitScene, buildScene, state, camera, controls, music };
+if (state.hearts.length === total) map.setComplete(true);
+if (xmasTime) { MAP_ENV.fx = 'snow'; setFx('snow'); }
+window.__world = { startFinale,  enterScene, exitScene, buildScene, state, camera, controls, music };
 if ('serviceWorker' in navigator && !['localhost', '127.0.0.1'].includes(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {});

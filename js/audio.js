@@ -41,6 +41,7 @@ const TRACKS = {
   praha: ['summer', 'piano', 100, 55], holandsko: ['play', 'guitar', 104, 62], alghero: ['summer', 'guitar', 108, 57],
   lod: ['warm', 'guitar', 70, 64],
 };
+const ALIAS = { finale: 'ruze' };
 const MAJOR = [0, 2, 4, 5, 7, 9, 11];
 const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -82,7 +83,8 @@ class Music {
     this.cur = id; this.stopSynth(); this.el.pause(); this.usingFile = false;
     const known = this.fileOK.get(id);
     if (known === false) return this.startSynth(id);
-    const urls = [`music/${id}.mp3`, `music/${id}.m4a`];
+    const f = ALIAS[id] || id;
+    const urls = [`music/${id}.mp3`, `music/${f}.mp3`, `music/${f}.m4a`];
     const tryFile = (url) => {
       this.el.onerror = () => { this.fileOK.set(id, false); if (this.cur === id) this.startSynth(id); };
       this.el.oncanplay = () => {
@@ -110,7 +112,7 @@ class Music {
   }
   startSynth(id) {
     if (!this.ctx) return;
-    const [themeName, inst, bpm, root] = TRACKS[id] || TRACKS.mapa;
+    const [themeName, inst, bpm, root] = TRACKS[id] || TRACKS[ALIAS[id]] || TRACKS.mapa;
     const th = THEMES[themeName];
     const deg = (n) => root + MAJOR[((n % 7) + 7) % 7] + 12 * Math.floor(n / 7);
     const steps = th.steps, stepDur = 60 / bpm / 2, bars = th.prog.length;

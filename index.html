@@ -52,12 +52,15 @@
 </div>
 
 <div id="letter" hidden>
+  <div id="l-float" aria-hidden="true"></div>
   <div class="letter-card">
-    <div class="l-heart">💌</div>
+    <div class="l-row" aria-hidden="true">💗 💕 💖 💕 💗</div>
     <h2 id="l-title"></h2>
     <div id="l-body"></div>
     <div id="l-sign"></div>
+    <div class="l-row" aria-hidden="true">💕 💗 💕</div>
     <button id="l-close" class="btn">Zavrieť 💗</button>
+    <button id="l-again" class="link">Pozrieť ohňostroj ešte raz</button>
   </div>
 </div>
 
@@ -65,6 +68,7 @@
 <div id="fade"><span>💗</span></div>
 
 <div id="gate">
+  <div id="snow" aria-hidden="true"></div>
   <div class="gate-card" id="gate-lock" hidden>
     <div class="g-heart">💗</div>
     <h1>Náš svet</h1>
@@ -76,9 +80,9 @@
     <div id="gate-msg"></div>
   </div>
   <div class="gate-card" id="gate-intro" hidden>
-    <div class="g-heart">💗</div>
-    <h1>Ahoj, <span id="intro-nick"></span></h1>
-    <p>Postavil som ti svet z našich spomienok.<br>Na každom ostrove nejaká čaká. Pozri si ich v akom poradí chceš a v každej skús nájsť jedno schované srdiečko.</p>
+    <div class="g-heart" id="intro-e">💗</div>
+    <h1 id="intro-h">Ahoj, cukrík</h1>
+    <p id="intro-p">Postavil som ti svet z našich spomienok.<br>Na každom ostrove nejaká čaká. Pozri si ich v akom poradí chceš a v každej skús nájsť jedno schované srdiečko.</p>
     <button id="start" class="btn">Vstúpiť</button>
     <div class="small">Zapni si zvuk 🔊</div>
   </div>

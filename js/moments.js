@@ -120,14 +120,14 @@ export const MOMENTS = [
   },
 ];
 
-// Tajný list. Odomkne sa, keď nájde všetky srdiečka. Prepíš ho vlastnými slovami!
+// Tajný list. Odomkne sa, keď nájde všetky srdiečka.
 export const LETTER = {
-  title: 'Pre moju Magdušku',
+  title: 'Šťastné a veselé Vianoce, magdudarček',
   body: [
-    'Tento svet som ti postavil z našich spomienok, aby si si ich mohla pozrieť vždy, keď budeš chcieť.',
-    'Ďakujem ti za každý jeden deň. Za stanicu, za Tatry, za Taliansko aj za obyčajné rána na bicykli.',
-    'Teším sa na všetko, čo nás ešte čaká.',
-    'Ľúbim ťa.',
+    'Verím, že sa ti páčil aspoň tak, ako sa ty páčiš mne.',
+    'A verím, že do tohto sveta plného krásnych spomienok pribudne ešte nespočetné množstvo ďalších a ešte krajších.',
+    'Teším sa na to, čo nás čaká.',
+    'Ľúbkam ťa najviac, mua.',
   ],
-  sign: 'Tvoj Dominik',
+  sign: 'Tvoj Dominik'
 };

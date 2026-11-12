@@ -116,3 +116,19 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; } }
 
 .credits { text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-2); padding: 8px 4px 2px; }
+
+/* list: srdiečka okolo */
+#letter { overflow: hidden; }
+#l-float { position: absolute; inset: 0; pointer-events: none; }
+#l-float span { position: absolute; bottom: -40px; animation: floatUp linear infinite; opacity: .85; }
+@keyframes floatUp { from { transform: translateY(0) rotate(-10deg); } 50% { transform: translateY(-55vh) rotate(12deg); } to { transform: translateY(-115vh) rotate(-8deg); opacity: 0; } }
+.letter-card { position: relative; border: 3px solid #ffd0e2; }
+.letter-card h2 { text-wrap: balance; }
+.l-row { font-size: 22px; letter-spacing: 6px; margin: 2px 0 10px; }
+#l-body p:last-child { font-weight: 900; color: var(--pink-d); font-size: 19px; }
+.link { display: block; margin: 14px auto 0; background: none; font-weight: 800; font-size: 13px; color: var(--ink-2); text-decoration: underline; min-height: 32px; }
+/* vianočný úvod: sneh */
+#snow { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+#snow span { position: absolute; top: -30px; color: #fff; text-shadow: 0 0 6px rgba(255,255,255,.9); animation: snowFall linear infinite; }
+@keyframes snowFall { from { transform: translate(0, 0); } 50% { transform: translate(24px, 55vh); } to { transform: translate(-10px, 112vh); } }
+#gate.xmas { background: radial-gradient(circle at 50% 30%, rgba(255,225,235,.74), rgba(200,60,110,.9)); }

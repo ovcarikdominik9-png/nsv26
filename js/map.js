@@ -114,7 +114,7 @@ export function buildMap(api) {
       const hit = new THREE.Mesh(new THREE.SphereGeometry(1.9, 8, 6), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
       hit.position.y = 2.6; p.add(hit);
       p.userData.moment = m.id;
-      pins[m.id] = { heart: h, em };
+      pins[m.id] = { heart: h, em, pos: [I.pos[0] + p.position.x, 4.2, I.pos[1] + p.position.z] };
       const ph = i * 1.7 + I.pos[0];
       updates.push(t => { top.position.y = 2.4 + Math.sin(t * 2 + ph) * 0.18; h.rotation.y = Math.sin(t * 1.2 + ph) * 0.5; });
     });
@@ -131,6 +131,14 @@ export function buildMap(api) {
   env.userData.tap = () => api.onLetter();
   env.userData.tapH = 3.4;
   updates.push(t => { env.position.y = 3.2 + Math.sin(t * 0.8) * 0.35; letter.rotation.y = Math.sin(t * 0.6) * 0.35; });
+  // finále: veľké srdce nad obláčikom a srdiečka, ktoré k nemu priletia z každej spomienky
+  const CLOUD = [-13, 3.2, 6];
+  const big = heart(g, 3.4, M('#ff3f86', { emissive: '#ff2f7a', emissiveIntensity: 0.55 }), [CLOUD[0], 10.5, CLOUD[2]]); big.visible = false; big.castShadow = false;
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(4.6, 20, 14), glow('#ff9cc4', 0.16)); halo.position.copy(big.position); halo.visible = false; g.add(halo);
+  const words = sprite(g, 'Ľúbkam ťa najviac 💗', 11, 2.2, { bg: '#ffffffee', fg: '#e0457e', size: 84, radius: 56 }, [CLOUD[0], 16.2, CLOUD[2]]); words.visible = false;
+  const flyers = MOMENTS.map(m => { const f = heart(g, 0.9, M('#ffc94a', { emissive: '#ffb020', emissiveIntensity: 0.5 }), pins[m.id].pos); f.visible = false; f.castShadow = false; return { mesh: f, from: pins[m.id].pos }; });
+  let complete = false;
+  updates.push(t => { if (complete) { const s = 3.4 * (1 + Math.sin(t * 2.4) * 0.06); big.scale.setScalar(s); big.rotation.y = Math.sin(t * 0.7) * 0.5; halo.scale.setScalar(1 + Math.sin(t * 2.4) * 0.08); } });
   // oblaky, balón
   const clouds = [];
   [[-48, 9, -6, 2.2], [-22, 11, 40, 1.8], [44, 10, 26, 2.4], [16, 12, -34, 2], [-6, 13, -30, 1.6], [48, 9, -18, 1.9], [-46, 10, 34, 1.7], [10, 14, 44, 1.5]].forEach(([x, y, z, s], i) => {
@@ -149,6 +157,8 @@ export function buildMap(api) {
   return {
     group: g,
     update: (t) => updates.forEach(f => f(t)),
+    finale: { big, halo, words, flyers, target: [CLOUD[0], 10.5, CLOUD[2]] },
+    setComplete(on) { complete = on; big.visible = halo.visible = words.visible = on; if (on) { big.scale.setScalar(3.4); words.scale.set(11, 2.2, 1); } },
     mark(id, visited, found) {
       const p = pins[id]; if (!p) return;
       p.heart.material = found ? M('#ffc94a') : visited ? M('#ff9cc0') : M('#ff4f8b');
